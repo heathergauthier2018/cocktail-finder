@@ -1,12 +1,16 @@
+// ---------- DOM helpers ----------
 const $ = (sel, root=document) => root.querySelector(sel);
 const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
+// ---------- State ----------
 const state = { current: null, favs: [] };
 
+// ---------- Common elements ----------
 const statusEl = $("#status");
 const favListEl = $("#favList");
 const favCountEl = $("#favCount");
 
+// ---------- Tabs ----------
 const tabs = $$(".tab");
 tabs.forEach(btn => btn.addEventListener("click", () => setTab(btn.dataset.tab)));
 function setTab(name){
@@ -15,8 +19,9 @@ function setTab(name){
   $("#pane-search").hidden = name !== "search";
   statusEl.textContent = "";
 }
-setTab("random");
+setTab("random"); // default
 
+// ---------- Favorites ----------
 loadFavs(); renderFavs();
 function persistFavs(){ try{ localStorage.setItem("cf:favs", JSON.stringify(state.favs)); }catch{} }
 function loadFavs(){ try{ state.favs = JSON.parse(localStorage.getItem("cf:favs")||"[]"); }catch{ state.favs=[]; } }
@@ -54,6 +59,7 @@ function openDrink(f){
   else { openDetails(d); }
 }
 
+// ---------- Utilities ----------
 function ingredientsList(d){
   const list=[]; for(let i=1;i<=15;i++){ const ing=d[`strIngredient${i}`], meas=d[`strMeasure${i}`];
     if(ing){ list.push(meas ? `${(meas||"").trim()} ${ing}`.trim() : ing); } }
@@ -73,7 +79,7 @@ async function copyToClipboard(text){
   catch{ statusEl.textContent="Unable to copy. You can select and copy manually."; }
 }
 
-// RANDOM
+// ================= RANDOM MODE =================
 const cardEl = $("#card");
 const imgEl = $("#thumb");
 const titleEl = $("#title");
@@ -84,7 +90,7 @@ $("#newBtn").addEventListener("click", loadRandom);
 $("#saveBtn").addEventListener("click", () => state.current && toggleSave(state.current));
 $("#copyBtn").addEventListener("click", () => state.current && copyToClipboard(copyRecipeText(state.current)));
 
-updateSaveButtons();
+updateSaveButtons(); // init
 
 async function loadRandom(){
   setBusy(true, "Loading a delicious idea…");
@@ -113,7 +119,7 @@ function updateSaveButtons(){
   $("#saveBtn").textContent = saved ? "⭐ Saved (click to remove)" : "⭐ Save";
 }
 
-// SEARCH
+// ================= SEARCH MODE =================
 const resultsEl = $("#results");
 const searchForm = $("#searchForm");
 const searchInput = $("#searchInput");
@@ -164,6 +170,7 @@ function renderSearchCards(items){
   resultsEl.appendChild(frag);
 }
 
+// ---------- Details dialog (search mode) ----------
 const dialogEl = $("#detailsDialog");
 $("#closeDialog").addEventListener("click", () => dialogEl.close());
 $("#dSaveBtn").addEventListener("click", () => state.current && toggleSave(state.current));
@@ -171,17 +178,4 @@ $("#dCopyBtn").addEventListener("click", () => state.current && copyToClipboard(
 
 function openDetails(d){
   state.current = d;
-  $("#dTitle").textContent = d.strDrink || "—";
-  $("#dImg").src = d.strDrinkThumb; $("#dImg").alt = d.strDrink || "Drink";
-  $("#dMeta").textContent = [d.strCategory,d.strAlcoholic,d.strGlass].filter(Boolean).join(" • ");
-  const ul = $("#dIngredients"); ul.innerHTML = "";
-  for(const item of ingredientsList(d)){ const li=document.createElement("li"); li.textContent=item; ul.appendChild(li); }
-  $("#dInstructions").textContent = d.strInstructions || "—";
-  if(typeof dialogEl.showModal === "function"){ dialogEl.showModal(); }
-  else{ alert(`Ingredients:\n${ingredientsList(d).join("\n")}\n\n${d.strInstructions||"—"}`); }
-  updateSaveButtons();
-}
-
-function setBusy(_isBusy, text=""){ statusEl.textContent = text||statusEl.textContent; }
-
-loadRandom();
+  $("#dTitle").textConte
