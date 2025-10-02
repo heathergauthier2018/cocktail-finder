@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Cocktail Finder — Random + Search</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <header class="app-header">
+    <h1>Cocktail Finder</h1>
+    <p class="muted">Random generator + search explorer using TheCocktailDB</p>
+  </header>
+
+  <main class="container">
+    <nav class="tabs">
+      <button class="tab active" data-tab="random">🍹 Random</button>
+      <button class="tab" data-tab="search">🔎 Search</button>
+    </nav>
+
+    <p id="status" class="status" aria-live="polite"></p>
+
+    <section id="pane-random" class="pane">
+      <div class="controls">
+        <button id="newBtn" class="btn primary">New Drink</button>
+        <button id="saveBtn" class="btn">⭐ Save</button>
+        <button id="copyBtn" class="btn">📋 Copy</button>
+      </div>
+
+      <article id="card" class="card" hidden>
+        <img id="thumb" class="thumb" alt="Drink image"/>
+        <div class="card-body">
+          <h2 id="title"></h2>
+          <p id="meta" class="muted"></p>
+          <div class="grid-2">
+            <div>
+              <h3>Ingredients</h3>
+              <ul id="ingredients"></ul>
+            </div>
+            <div>
+              <h3>Instructions</h3>
+              <p id="instructions"></p>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section id="pane-search" class="pane" hidden>
+      <form id="searchForm" class="controls">
+        <input id="searchInput" type="text" placeholder="Search by name (e.g., margarita)" required/>
+        <button type="submit" class="btn primary">Search</button>
+        <button type="button" id="randomBtn" class="btn">🎲 Random</button>
+      </form>
+
+      <section id="results" class="grid"></section>
+
+      <dialog id="detailsDialog">
+        <article class="dialog-content">
+          <button id="closeDialog" class="btn small" aria-label="Close">✕</button>
+          <h2 id="dTitle"></h2>
+          <img id="dImg" alt=""/>
+          <p id="dMeta" class="muted"></p>
+          <h3>Ingredients</h3>
+          <ul id="dIngredients"></ul>
+          <h3>Instructions</h3>
+          <p id="dInstructions"></p>
+          <div class="inline-actions">
+            <button id="dSaveBtn" class="btn">⭐ Save</button>
+            <button id="dCopyBtn" class="btn">📋 Copy</button>
+          </div>
+        </article>
+      </dialog>
+    </section>
+
+    <section class="favs">
+      <details>
+        <summary>⭐ Favorites (<span id="favCount">0</span>)</summary>
+        <ul id="favList" class="fav-list"></ul>
+      </details>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <small>Data & images: <a href="https://www.thecocktaildb.com/api.php" target="_blank" rel="noreferrer">TheCocktailDB</a></small>
+  </footer>
+
+  <script src="script.js" type="module"></script>
+</body>
+</html>
