@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
   <title>Cocktail Finder — Random + Search</title>
-  <link rel="stylesheet" href="styles.css"/>
+
+  <!-- cache-bust so your updated CSS loads -->
+  <link rel="stylesheet" href="styles.css?v=7" />
 </head>
 <body>
   <header class="app-header">
@@ -13,13 +16,16 @@
   </header>
 
   <main class="container">
+    <!-- Tabs -->
     <nav class="tabs">
       <button class="tab active" data-tab="random">🍹 Random</button>
       <button class="tab" data-tab="search">🔎 Search</button>
     </nav>
 
+    <!-- Status line -->
     <p id="status" class="status" aria-live="polite"></p>
 
+    <!-- Random mode -->
     <section id="pane-random" class="pane">
       <div class="controls">
         <button id="newBtn" class="btn primary">New Drink</button>
@@ -28,7 +34,7 @@
       </div>
 
       <article id="card" class="card" hidden>
-        <img id="thumb" class="thumb" alt="Drink image"/>
+        <img id="thumb" class="thumb" alt="Drink image" />
         <div class="card-body">
           <h2 id="title"></h2>
           <p id="meta" class="muted"></p>
@@ -46,20 +52,22 @@
       </article>
     </section>
 
+    <!-- Search mode -->
     <section id="pane-search" class="pane" hidden>
       <form id="searchForm" class="controls">
-        <input id="searchInput" type="text" placeholder="Search by name (e.g., margarita)" required/>
+        <input id="searchInput" type="text" placeholder="Search by name (e.g., margarita)" required />
         <button type="submit" class="btn primary">Search</button>
         <button type="button" id="randomBtn" class="btn">🎲 Random</button>
       </form>
 
       <section id="results" class="grid"></section>
 
+      <!-- Reusable details dialog -->
       <dialog id="detailsDialog">
         <article class="dialog-content">
           <button id="closeDialog" class="btn small" aria-label="Close">✕</button>
           <h2 id="dTitle"></h2>
-          <img id="dImg" alt=""/>
+          <img id="dImg" alt="" />
           <p id="dMeta" class="muted"></p>
           <h3>Ingredients</h3>
           <ul id="dIngredients"></ul>
@@ -73,6 +81,7 @@
       </dialog>
     </section>
 
+    <!-- Favorites -->
     <section class="favs">
       <details>
         <summary>⭐ Favorites (<span id="favCount">0</span>)</summary>
@@ -82,7 +91,7 @@
   </main>
 
   <footer class="footer">
-    <small>Data & images: <a href="https://www.thecocktaildb.com/api.php" target="_blank" rel="noreferrer">TheCocktailDB</a></small>
+    <small>Data &amp; images: <a href="https://www.thecocktaildb.com/api.php" target="_blank" rel="noreferrer noopener">TheCocktailDB</a></small>
   </footer>
 
   <script src="script.js" type="module"></script>

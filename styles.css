@@ -1,4 +1,4 @@
-/* ================== Variables & base ================== */
+/* =============== Variables & base =============== */
 * { box-sizing: border-box }
 :root{
   --pattern-size: 320px;            /* tile scale (260–380px looks great) */
@@ -18,13 +18,13 @@ body{
 
   /* LAYERS (top → bottom):
      1) Soft veil for readability
-     2) Seamless cocktail pattern image (img/bg-cocktail.png)
+     2) Seamless cocktail pattern image (img/cocktail.png)
      3) Pastel glows
      4) Deep night gradient base
   */
   background:
     linear-gradient(rgba(255,255,255,.16), rgba(255,255,255,.16)),
-    url("img/bg-cocktail.png") center / var(--pattern-size) auto repeat,
+    url("./img/cocktail.png?v=1") center / var(--pattern-size) auto repeat,
     radial-gradient(900px 480px at 12% -6%, rgba(255,140,220,.30), transparent 65%),
     radial-gradient(640px 420px at 88% 0%, rgba(181,255,122,.24), transparent 60%),
     linear-gradient(120deg, #0a0a1a 0%, #1b0e39 55%, #2a0b28 100%);
@@ -54,7 +54,7 @@ body::after{
   animation: shimmerSweep 12s linear infinite;
 }
 
-/* ================== UI styles ================== */
+/* =============== UI styles =============== */
 .app-header{ padding: 2rem 1rem .5rem; text-align: center }
 .app-header h1{
   margin: 0 0 .25rem; font-size: clamp(1.6rem, 3.5vw, 2.4rem);
@@ -125,7 +125,7 @@ dialog{ border:none; border-radius:16px; width:min(720px,92%); padding:0; backgr
 /* Footer */
 .footer{ padding:1rem; text-align:center; color:var(--muted); border-top:1px solid var(--border) }
 
-/* ================== Responsive ================== */
+/* =============== Responsive =============== */
 @media (max-width: 860px){
   .card{ grid-template-columns:1fr }
   .grid-2{ grid-template-columns:1fr }
@@ -134,7 +134,7 @@ dialog{ border:none; border-radius:16px; width:min(720px,92%); padding:0; backgr
   :root{ --pattern-size: 240px }   /* tighter pattern on small screens */
 }
 
-/* ================== Animations ================== */
+/* =============== Animations =============== */
 @keyframes glitterFloat{
   0%{ transform:translate(0,0); opacity:.60 }
   50%{ transform:translate(3px,-6px); opacity:.75 }
@@ -146,7 +146,7 @@ dialog{ border:none; border-radius:16px; width:min(720px,92%); padding:0; backgr
   100%{ transform:translateX(-8%) translateY(-4%) rotate(0deg); opacity:.30 }
 }
 
-/* Reduced motion preference */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce){
   body::before, body::after{ animation: none }
 }

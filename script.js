@@ -48,7 +48,6 @@ function renderFavs(){
 function toggleSave(drink){
   const i = state.favs.findIndex(x => x.idDrink === drink.idDrink);
   if(i >= 0) state.favs.splice(i,1); else state.favs.unshift(minify(drink));
-  // de-dupe + cap to 20
   const seen = new Set();
   state.favs = state.favs.filter(x => seen.has(x.idDrink) ? false : (seen.add(x.idDrink), true)).slice(0,20);
   persistFavs(); renderFavs(); updateSaveButtons();
