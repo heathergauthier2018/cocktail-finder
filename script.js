@@ -180,7 +180,7 @@ function renderSearchCards(items){
     card.innerHTML = `
       <img src="${d.strDrinkThumb}" alt="${d.strDrink}"/>
       <div class="pad">
-        <h3>${d.strDrink}</h3>
+        <h3 class="card-title" style="margin:0 0 .25rem">${d.strDrink}</h3>
         <p class="muted">${[d.strCategory,d.strAlcoholic].filter(Boolean).join(" • ")}</p>
         <div class="inline-actions">
           <button class="btn open">Open</button>

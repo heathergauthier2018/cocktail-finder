@@ -6,13 +6,16 @@
   <meta name="color-scheme" content="dark" />
   <title>Cocktail Finder — Random + Search</title>
 
-  <!-- cache-bust so your updated CSS loads -->
-  <link rel="stylesheet" href="styles.css?v=7" />
+  <!-- Glam fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+
+  <!-- Styles (cache-busted) -->
+  <link rel="stylesheet" href="styles.css?v=30" />
 </head>
 <body>
   <header class="app-header">
-    <h1>Cocktail Finder</h1>
-    <p class="muted">Random generator + search explorer using TheCocktailDB</p>
+    <h1 class="brand-title">Cocktail Finder</h1>
+    <p class="brand-subtitle">random sips · curated picks</p>
   </header>
 
   <main class="container">
@@ -36,16 +39,16 @@
       <article id="card" class="card" hidden>
         <img id="thumb" class="thumb" alt="Drink image" />
         <div class="card-body">
-          <h2 id="title"></h2>
+          <h2 id="title" class="card-title"></h2>
           <p id="meta" class="muted"></p>
           <div class="grid-2">
             <div>
-              <h3>Ingredients</h3>
-              <ul id="ingredients"></ul>
+              <h3 class="card-section">Ingredients</h3>
+              <ul id="ingredients" class="ing-list"></ul>
             </div>
             <div>
-              <h3>Instructions</h3>
-              <p id="instructions"></p>
+              <h3 class="card-section">Instructions</h3>
+              <p id="instructions" class="instructions"></p>
             </div>
           </div>
         </div>
@@ -66,13 +69,13 @@
       <dialog id="detailsDialog">
         <article class="dialog-content">
           <button id="closeDialog" class="btn small" aria-label="Close">✕</button>
-          <h2 id="dTitle"></h2>
+          <h2 id="dTitle" class="card-title"></h2>
           <img id="dImg" alt="" />
           <p id="dMeta" class="muted"></p>
-          <h3>Ingredients</h3>
-          <ul id="dIngredients"></ul>
-          <h3>Instructions</h3>
-          <p id="dInstructions"></p>
+          <h3 class="card-section">Ingredients</h3>
+          <ul id="dIngredients" class="ing-list"></ul>
+          <h3 class="card-section">Instructions</h3>
+          <p id="dInstructions" class="instructions"></p>
           <div class="inline-actions">
             <button id="dSaveBtn" class="btn">⭐ Save</button>
             <button id="dCopyBtn" class="btn">📋 Copy</button>
