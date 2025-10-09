@@ -1,10 +1,13 @@
-/* ================= Variables & base ================= */
+/* ================= styles.css (v100) ================= */
+/* Glam header, white buttons, seam-free background.
+   Footer sits at the bottom; no line. */
+
 * { box-sizing: border-box }
 
 :root{
-  --accent:   #ff8bd1;   /* pastel pink */
-  --accent-2: #b5ff7a;   /* lime green */
-  --ink:      #1a1633;   /* deep plum for text on white buttons */
+  --accent:   #ff8bd1;  /* pastel pink */
+  --accent-2: #b5ff7a;  /* lime green */
+  --ink:      #1a1633;  /* deep plum for text on white buttons */
   --text:     #ffffff;
   --muted:    #cbc8dc;
   --border:   rgba(255,255,255,.16);
@@ -14,22 +17,27 @@ html, body { height: 100% }
 
 body{
   margin: 0;
+  display: flex;               /* layout for bottom footer */
+  flex-direction: column;
+  min-height: 100vh;
+
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
   color: var(--text);
 
-  /* Dark veil + gradient only (image sits on a separate layer below) */
+  /* veil + base gradient (image on html::before) */
   background:
     linear-gradient(rgba(10, 8, 24, .58), rgba(10, 8, 24, .58)),
     linear-gradient(120deg, #0a0a1a 0%, #1b0e39 55%, #2a0b28 100%);
   overflow-x: hidden;
 }
 
-/* Remove any glitter/shimmer from older versions */
-body::before, body::after { content: none !important; }
+/* main fills space so footer is pushed to bottom */
+main.container{ flex: 1 0 auto }
 
-/* === One large background image, no repeat (no lines/seams) ===
-   Absolute path so it works on GitHub Pages project sites.
-*/
+/* No legacy overlays */
+body::before, body::after{ content:none !important; }
+
+/* Non-tiled background image: no grid/lines */
 html::before{
   content:"";
   position: fixed;
@@ -37,31 +45,31 @@ html::before{
   z-index: -1;
   pointer-events: none;
 
-  background-image: url("/cocktail-finder/img/cocktail.png?v=30");
+  background-image: url("/cocktail-finder/img/cocktail.png?v=100");
   background-repeat: no-repeat;
   background-position: center top;
   background-size: cover;
-  opacity: .45; /* Adjust between .35–.55 to taste */
+  opacity: .45; /* 0.35–0.55 to taste */
 }
 
-/* ================= Header (glam fonts) ================= */
+/* ================ Header (glam) ================ */
 .app-header{ padding: 2.2rem 1rem .75rem; text-align: center }
 
 .brand-title{
   margin: 0;
-  font-family: "Cinzel Decorative", "Playfair Display", serif;
+  font-family: "Cinzel Decorative","Playfair Display",serif;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  color: #ffd6ec;                 /* delicate pink */
+  letter-spacing: .5px;
+  color: #ffd6ec;
   text-shadow: 0 3px 18px rgba(0,0,0,.35);
   font-size: clamp(2.0rem, 4.8vw, 3.0rem);
 }
 .brand-subtitle{
   margin: .35rem 0 0;
-  font-family: "Playfair Display", serif;
+  font-family: "Playfair Display",serif;
   font-weight: 600;
   letter-spacing: .12em;
-  color: #bfffa1;                 /* lime accent */
+  color: #bfffa1;
   text-transform: uppercase;
   opacity: .9;
   font-size: clamp(.85rem, 2.4vw, 1rem);
@@ -70,16 +78,15 @@ html::before{
 .muted{ color: var(--muted) }
 .container{ max-width: 1000px; margin: 0 auto; padding: 1rem }
 
-/* ================= Tabs ================= */
+/* ================ Tabs ================ */
 .tabs{ display:flex; gap:.5rem; margin-bottom:1rem }
 .tab{
   padding:.65rem 1rem;
   border-radius:14px;
   cursor:pointer;
-  border:2px solid rgba(255,255,255,.18);
-  background:#ffffff;             /* switched to white */
-  color: var(--ink);              /* deep plum text */
-  font-weight: 600;
+  border:2px solid rgba(26,22,51,.15);
+  background:#ffffff; color: var(--ink);
+  font-weight: 700;
   box-shadow: 0 4px 14px rgba(0,0,0,.18);
   transition: transform .08s ease, box-shadow .15s ease;
 }
@@ -88,28 +95,26 @@ html::before{
   border-color: var(--accent);
   outline: 2px solid rgba(255,139,209,.35);
 }
+.status{ min-height:1.5rem; color:var(--muted) }
 
-/* ================= Buttons ================= */
+/* ================ Buttons ================ */
 .controls{ display:flex; gap:.5rem; flex-wrap:wrap; margin:.75rem 0 }
 .btn{
   padding:.75rem 1.05rem;
   border-radius:14px;
   cursor:pointer;
-  color: var(--ink);
-  border: 2px solid rgba(26,22,51,.15);
-  background: #ffffff;            /* switched to white */
-  font-weight: 700;
-  box-shadow: 0 4px 14px rgba(0,0,0,.18);
+  color:var(--ink);
+  border:2px solid rgba(26,22,51,.15);
+  background:#ffffff;            /* white buttons */
+  font-weight:700;
+  box-shadow:0 4px 14px rgba(0,0,0,.18);
   transition: transform .08s ease, box-shadow .15s ease, border-color .15s ease;
 }
 .btn:hover{ transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,.22); }
-.btn.primary{
-  border-color: var(--accent);    /* subtle pink emphasis */
-  color: #7e0c50;
-}
-.btn.small{ padding:.35rem .65rem; font-weight: 600 }
+.btn.primary{ border-color: var(--accent); color:#7e0c50; }
+.btn.small{ padding:.35rem .65rem; font-weight:600 }
 
-/* ================= Cards & grids ================= */
+/* ================ Cards & grids ================ */
 .pane{ margin-bottom:1.25rem }
 
 .card{
@@ -126,21 +131,15 @@ html::before{
 /* Recipe card typography / colors */
 .card-title{
   font-family: "Playfair Display", serif;
-  font-weight: 700;
-  letter-spacing: .3px;
-  color: #ffd0ea;                  /* glamorous pink heading */
-  margin: .15rem 0 .35rem;
+  font-weight: 700; letter-spacing: .3px;
+  color: #ffd0ea; margin: .15rem 0 .35rem;
 }
 .card-section{
   font-family: "Playfair Display", serif;
-  font-weight: 700;
-  color: #bfffa1;                  /* lime section labels */
-  margin: .2rem 0 .35rem;
+  font-weight: 700; color: #bfffa1; margin: .2rem 0 .35rem;
 }
-.ing-list li,
-.instructions{
-  color: #f5f3fa;                  /* crisp, easy-to-read text on the card */
-  line-height: 1.55;
+.ing-list li, .instructions{
+  color: #f5f3fa; line-height: 1.55;
 }
 
 .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:1rem }
@@ -154,7 +153,7 @@ html::before{
 .card-sm .pad{ padding:.75rem }
 .inline-actions{ display:flex; gap:.5rem; margin-top:.5rem }
 
-/* ================= Dialog ================= */
+/* ================ Dialog ================ */
 dialog{
   border:none; border-radius:16px; width:min(720px,92%); padding:0;
   background:#0d0b19; color:var(--text);
@@ -163,25 +162,248 @@ dialog{
 .dialog-content{ padding:1rem 1.25rem; position:relative }
 #dImg{ width:100%; border-radius:12px; margin:.5rem 0 }
 
-/* ================= Favorites ================= */
+/* ================ Favorites ================ */
 .favs{ margin:1rem 0 2rem }
-.fav-list{ list-style:none; padding:0; display:grid; gap:.5rem }
-.fav-item{
-  display:flex; align-items:center; gap:.6rem; padding:.55rem;
-  background:#0d0b19;
-  border:1px solid rgba(255,255,255,.14);
-  border-radius:12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,.25);
+
+/* ================ Footer at bottom; NO LINE ================ */
+.footer{
+  margin-top: auto;                /* pushes to the bottom in the flex column */
+  padding: 1rem;
+  text-align: center;
+  color: var(--muted);
+  border-top: 0;                   /* no separator */
+  box-shadow: none;
+  background: transparent;
 }
-.fav-item img{ width:42px; height:42px; object-fit:cover; border-radius:8px }
-.fav-item .grow{ flex:1 }
 
-/* ================= Footer ================= */
-.footer{ padding:1rem; text-align:center; color:var(--muted); border-top:1px solid var(--border) }
+/* Safety: hide any <hr> */
+hr{ display:none !important; height:0 !important; border:0 !important; }
 
-/* ================= Responsive ================= */
+/* ================ Responsive ================ */
 @media (max-width: 860px){
   .card{ grid-template-columns:1fr }
   .grid-2{ grid-template-columns:1fr }
+}
+/* remove the faint line above the credits */
+hr,
+.credits,
+.attribution {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  height: 0;            /* keep spacing with margin on <hr> if you want */
+}
+
+/* if any pseudo elements draw a rule */
+.credits::before,
+.credits::after,
+.attribution::before,
+.attribution::after {
+  content: none !important;
+}
+
+/* sticky footer layout */
+html, body { height: 100%; }
+
+body {
+  min-height: 100dvh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main, .main, #main { flex: 1 0 auto; }
+
+footer, .site-footer, .app-footer {
+  margin-top: auto;
+  border-top: none;
+}
+/* ===== Restore wallpaper & keep sticky footer ===== */
+
+/* Sticky footer layout (keep this) */
+html, body { height: 100%; }
+
+body{
+  min-height: 100dvh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  /* 🔁 Pick ONE of these background-image lines based on your file */
+  /* background-image: url("./img/bg-cocktail.png"); */
+  background-image: url("./img/cocktail.png");
+
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  /* Optional: comment out on iOS if it janks */
+  background-attachment: fixed;
+}
+
+main { flex: 1 0 auto; }
+footer { margin-top: auto; }
+
+/* Remove the faint rule above credits / anywhere */
+hr, .credits, .attribution { border: 0 !important; background: transparent !important; }
+hr { height: 0; margin: 1rem 0; }
+
+/* Safety: no top/bottom borders acting as hairlines */
+header, section, footer { border: 0 !important; box-shadow: none !important; }
+/* ===== Wallpaper dark overlay (contrast + vibe) ===== */
+:root{
+  /* tweak these to taste */
+  --overlay-strength: .50;   /* overall darkness (0→1) */
+  --vignette-strength: .35;  /* extra edge darkening   */
+}
+
+body{ position: relative; }  /* create a stacking context */
+
+/* A fixed overlay above the background image but under all content */
+body::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;                /* sits above the bg image, below content */
+
+  /* Smooth, banding-safe combo: a subtle vignette + uniform tint */
+  background:
+    radial-gradient(120% 120% at 50% 0%,
+      rgba(0,0,0, calc(var(--vignette-strength) + .10)) 0%,
+      rgba(0,0,0, var(--vignette-strength)) 60%,
+      rgba(0,0,0, calc(var(--vignette-strength) + .15)) 100%),
+    rgba(0,0,0, var(--overlay-strength));
+}
+
+/* Make sure page content paints above the overlay */
+header, main, footer, .app, .container { position: relative; z-index: 1; }
+
+/* Optional: respect motion/transparency preferences */
+@media (prefers-reduced-transparency: reduce){
+  body::before{
+    background: rgba(0,0,0,.45);
+  }
+}
+/* ===== Dark wallpaper overlay (element-based, robust) ===== */
+:root{
+  --overlay-strength: .50;   /* overall darkness 0–1 */
+  --vignette-strength: .35;  /* edge darkening 0–1   */
+}
+
+/* Ensure the body wallpaper stays */
+body{
+  /* keep your working image path */
+  background-image: url("./img/cocktail.png") !important;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed; /* optional */
+}
+
+/* Overlay sits ABOVE the body image, BELOW all content */
+.bg-overlay{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;  /* behind content */
+  background:
+    radial-gradient(120% 120% at 50% 0%,
+      rgba(0,0,0, calc(var(--vignette-strength) + .10)) 0%,
+      rgba(0,0,0, var(--vignette-strength)) 60%,
+      rgba(0,0,0, calc(var(--vignette-strength) + .15)) 100%),
+    rgba(0,0,0, var(--overlay-strength));
+}
+
+/* Make sure content paints over the overlay */
+header, main, footer, .container, .app, .content{
+  position: relative;
+  z-index: 1;
+}
+
+/* If you still have earlier “nuke” rules, neutralize them just for overlay */
+.bg-overlay, .bg-overlay::before, .bg-overlay::after{
+  background-image: revert-layer !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Accessibility fallback */
+@media (prefers-reduced-transparency: reduce){
+  .bg-overlay{
+    background: rgba(0,0,0,.45);
+  }
+}
+/* Compact favorites — forces small thumbs and tidy rows */
+#favList { display: grid; gap: .6rem; }
+
+#favList .fav-item{
+  display:flex; align-items:center; gap:.75rem;
+  padding:.5rem .75rem; border-radius:14px;
+  background: rgba(0,0,0,.35);
+  border:1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(4px);
+}
+
+#favList .fav-item img{
+  width:56px;            /* <-- key size */
+  height:56px;           /* <-- key size */
+  object-fit:cover;
+  border-radius:8px;
+  flex:none;
+}
+
+#favList .fav-item .grow{ flex:1; font-weight:600; color:#f3f4f6; }
+#favList .fav-item .btn{ padding:.4rem .6rem; border-radius:10px;
+  border:1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); color:#f3f4f6; }
+#favList .fav-item .btn:hover{ background: rgba(255,255,255,.1); }
+#favList { max-height: 260px; overflow:auto; padding-right:.25rem; }
+#favList::-webkit-scrollbar { height:8px; width:8px }
+#favList::-webkit-scrollbar-thumb { background:rgba(255,255,255,.15); border-radius:8px }
+/* ---- Favorites: compact & scroll ---- */
+.fav-header{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:.75rem; margin:.5rem 0 .25rem;
+}
+#clearFavs.btn.subtle{
+  background:transparent; color:#e5e7eb; border:1px solid rgba(255,255,255,.18);
+  padding:.35rem .6rem; border-radius:10px;
+}
+#favList{ display:grid; gap:.6rem; max-height:260px; overflow:auto; padding-right:.25rem; }
+#favList::-webkit-scrollbar{ width:8px; height:8px }
+#favList::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.15); border-radius:8px }
+#favList .fav-item{
+  display:flex; align-items:center; gap:.75rem;
+  padding:.5rem .75rem; border-radius:14px;
+  background: rgba(0,0,0,.35);
+  border:1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(4px);
+}
+#favList .fav-item img{
+  width:56px; height:56px; object-fit:cover; border-radius:8px; flex:none;
+}
+#favList .fav-item .grow{ flex:1; font-weight:600; color:#f3f4f6; }
+#favList .fav-item .btn{
+  padding:.4rem .6rem; border-radius:10px;
+  border:1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); color:#f3f4f6;
+}
+#favList .fav-item .btn:hover{ background: rgba(255,255,255,.1); }
+/* ---- Skeletons ---- */
+@keyframes sk-shimmer { 0% { background-position:-200% 0 } 100% { background-position:200% 0 } }
+.sk, .sk-img, .sk-line, .sk-pill{
+  position:relative; overflow:hidden; border-radius:12px; background:
+    linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.12), rgba(255,255,255,.04));
+  background-size:200% 100%; animation: sk-shimmer 1.2s linear infinite;
+}
+.card-sm.sk{ border:1px solid rgba(255,255,255,.1); }
+.sk-img{ width:100%; aspect-ratio: 16/10; border-bottom-left-radius:0; border-bottom-right-radius:0; }
+.sk-line{ height:12px; margin:.4rem 0; }
+.sk-line.w60{ width:60% } .sk-line.w40{ width:40% }
+.sk-buttons{ display:flex; gap:.5rem; margin-top:.5rem }
+.sk-pill{ width:70px; height:28px; border-radius:999px }
+/* ---- Print: only the recipe content ---- */
+@media print {
+  body { background:#fff !important; }
+  header, nav, .fav-header, #favList, #results, #searchForm, .tabs, footer { display:none !important; }
+  .printable { display:block !important; }
 }
 

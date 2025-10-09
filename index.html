@@ -4,18 +4,42 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
+
+  <!-- Faster first request to CocktailDB -->
+  <link rel="preconnect" href="https://www.thecocktaildb.com" crossorigin>
+
   <title>Cocktail Finder — Random + Search</title>
 
   <!-- Glam fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 
   <!-- Styles (cache-busted) -->
-  <link rel="stylesheet" href="styles.css?v=30" />
+  <link rel="stylesheet" href="styles.css?v=100" />
+
+  <!-- HARD OVERRIDE: footer at bottom & no line (wins even if old CSS is cached) -->
+  <style>
+    html, body { height:100%; }
+    body { display:flex !important; flex-direction:column !important; min-height:100vh !important; }
+    main.container { flex:1 0 auto !important; }
+
+    /* remove any separator above footer */
+    body > footer.footer,
+    body > footer.footer::before,
+    body > footer.footer::after {
+      border-top:0 !important;
+      box-shadow:none !important;
+      background:transparent !important;
+    }
+    hr { display:none !important; height:0 !important; border:0 !important; }
+  </style>
 </head>
 <body>
+  <!-- soft dark overlay behind everything -->
+  <div class="bg-overlay" aria-hidden="true"></div>
+
   <header class="app-header">
-    <h1 class="brand-title">Cocktail Finder</h1>
-    <p class="brand-subtitle">random sips · curated picks</p>
+    <h1 class="brand-title">COCKTAIL FINDER</h1>
+    <p class="brand-subtitle">RANDOM SIPS · CURATED PICKS</p>
   </header>
 
   <main class="container">
@@ -25,8 +49,8 @@
       <button class="tab" data-tab="search">🔎 Search</button>
     </nav>
 
-    <!-- Status line -->
-    <p id="status" class="status" aria-live="polite"></p>
+    <!-- Status line (accessible) -->
+    <p id="status" class="status" aria-live="polite" role="status"></p>
 
     <!-- Random mode -->
     <section id="pane-random" class="pane">
@@ -34,6 +58,9 @@
         <button id="newBtn" class="btn primary">New Drink</button>
         <button id="saveBtn" class="btn">⭐ Save</button>
         <button id="copyBtn" class="btn">📋 Copy</button>
+        <!-- NEW: share + print on the main card -->
+        <button id="shareBtn" class="btn">🔗 Share</button>
+        <button id="printBtn" class="btn">🖨️ Print</button>
       </div>
 
       <article id="card" class="card" hidden>
@@ -79,6 +106,9 @@
           <div class="inline-actions">
             <button id="dSaveBtn" class="btn">⭐ Save</button>
             <button id="dCopyBtn" class="btn">📋 Copy</button>
+            <!-- NEW: share + print inside dialog -->
+            <button id="dShareBtn" class="btn">🔗 Share</button>
+            <button id="dPrintBtn" class="btn">🖨️ Print</button>
           </div>
         </article>
       </dialog>
@@ -86,17 +116,44 @@
 
     <!-- Favorites -->
     <section class="favs">
-      <details>
+      <!-- Keep collapsible behavior with <details>; default open is fine -->
+      <details open>
         <summary>⭐ Favorites (<span id="favCount">0</span>)</summary>
+
+        <!-- NEW: header row with Clear all -->
+        <div class="fav-header">
+          <span class="muted small">Saved drinks</span>
+          <button id="clearFavs" class="btn subtle" type="button">Clear all</button>
+        </div>
+
+        <!-- list gets rendered by JS -->
         <ul id="favList" class="fav-list"></ul>
       </details>
     </section>
   </main>
 
-  <footer class="footer">
-    <small>Data &amp; images: <a href="https://www.thecocktaildb.com/api.php" target="_blank" rel="noreferrer noopener">TheCocktailDB</a></small>
+  <footer class="footer" id="site-footer">
+    <small>Data &amp; images:
+      <a href="https://www.thecocktaildb.com/api.php" target="_blank" rel="noreferrer noopener">TheCocktailDB</a>
+    </small>
   </footer>
+
+  <!-- NEW: skeleton card template used while searching -->
+  <template id="sk-card-sm">
+    <article class="card-sm sk">
+      <div class="sk-img"></div>
+      <div class="pad">
+        <div class="sk-line w60"></div>
+        <div class="sk-line w40"></div>
+        <div class="sk-buttons">
+          <div class="sk-pill"></div>
+          <div class="sk-pill"></div>
+        </div>
+      </div>
+    </article>
+  </template>
 
   <script src="script.js" type="module"></script>
 </body>
 </html>
+
