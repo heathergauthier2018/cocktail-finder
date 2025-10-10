@@ -10,7 +10,7 @@ const statusEl   = $("#status");
 const favListEl  = $("#favList");
 const favCountEl = $("#favCount");
 
-// dialogs
+// dialogs & toast
 const shareDlg = $("#shareDialog");
 const printDlg = $("#printDialog");
 const toastEl  = $("#toast");
@@ -23,8 +23,7 @@ function setTab(name){
   $("#pane-random").hidden = name !== "random";
   $("#pane-search").hidden = name !== "search";
   status("");                    // clear status
-  // keep the Save button reflecting what’s on screen
-  updateSaveButtons();
+  updateSaveButtons();           // keep Save/Saved correct when switching
 }
 setTab("random");
 
@@ -41,9 +40,7 @@ function minify(d){
 }
 function dedupeAndCap(){
   const seen = new Set();
-  state.favs = state.favs
-    .filter(x => seen.has(x.idDrink) ? false : (seen.add(x.idDrink), true))
-    .slice(0,20);
+  state.favs = state.favs.filter(x => seen.has(x.idDrink) ? false : (seen.add(x.idDrink), true)).slice(0,20);
 }
 function setCurrent(drink){
   state.current = drink || null;
@@ -83,14 +80,13 @@ function renderFavs(){
       state.favs = state.favs.filter(x => x.idDrink !== btn.dataset.id);
       persistFavs();
       renderFavs();
-      // if we removed the one on screen, reflect it
       if (state.current && state.current.idDrink === btn.dataset.id) updateSaveButtons();
       updateSearchSaveButtons();
       showToast("Removed 1 saved drink.");
     });
   });
 
-  // wire clear all
+  // wire clear all (rebind each render; safe)
   $("#clearFavs")?.addEventListener("click", () => {
     if (!state.favs.length) return;
     state.favs = [];
@@ -99,7 +95,7 @@ function renderFavs(){
     updateSaveButtons();
     updateSearchSaveButtons();
     showToast("Removed all saved drinks.");
-  }, { once:true });
+  });
 }
 
 function toggleSave(drink){
@@ -135,7 +131,7 @@ function copyRecipeText(d){
   ].join("\n");
 }
 
-// robust clipboard (works on iOS Safari too)
+// robust clipboard (covers iOS Safari and HTTP)
 async function copyText(text){
   try{
     if (navigator.clipboard && window.isSecureContext){
@@ -151,6 +147,20 @@ async function copyText(text){
     status("Unable to copy. You can select and copy manually.");
   }
 }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+}
+
+// ---------- status + toast ----------
+function status(text=""){ statusEl.textContent = text; if(!text) hideToast(); }
+let toastTimer;
+function showToast(msg, ms=2000){
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, ms);
+}
+function hideToast(){ toastEl.classList.remove("show"); }
 
 // ================= RANDOM MODE =================
 const cardEl  = $("#card");
@@ -222,7 +232,7 @@ randomBtn.addEventListener("click", async () => {
   renderSearchCards(data.drinks ? [data.drinks[0]] : []);
 });
 
-// typeahead using first-letter endpoint (lightweight)
+// simple typeahead
 searchInput.addEventListener("input", async (e) => {
   const v = e.target.value.trim();
   if (!v) { datalist.innerHTML=""; return; }
@@ -311,30 +321,33 @@ function openDrink(f){
   }
 }
 
-// ---------- Deep links ----------
-(async function handleDeepLink(){
-  const id = new URL(location.href).searchParams.get("id");
-  if (!id) return;
-  try{
-    const res = await fetch(`https://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=${encodeURIComponent(id)}`);
-    const data = await res.json();
-    const d = data.drinks?.[0];
-    if (d){
-      setTab("random");
-      renderRandomCard(d);
-      // scroll to card
-      cardEl.scrollIntoView({ behavior:"smooth", block:"start" });
-    }
-  }catch(err){ console.warn("Deep link failed", err); }
-})();
-
-// ---------- Share ----------
+// ---------- Deep link boot (prevents overwriting by random) ----------
 function shareUrlFor(d){
   const url = new URL(location.href);
-  url.searchParams.set("id", d.idDrink);   // ensure deep link
+  url.searchParams.set("id", d.idDrink);
   return url.toString();
 }
 
+async function boot(){
+  const id = new URL(location.href).searchParams.get("id");
+  if (id){
+    try{
+      const res = await fetch(`https://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=${encodeURIComponent(id)}`);
+      const data = await res.json();
+      const d = data.drinks?.[0];
+      if (d){
+        setTab("random");
+        renderRandomCard(d);
+        return; // IMPORTANT: do NOT load random afterwards
+      }
+    }catch(e){ console.warn("Deep link failed", e); }
+  }
+  // fallback if no id or lookup failed
+  await loadRandom();
+}
+boot();
+
+// ---------- Share (always use our dialog for consistent email with recipe) ----------
 $("#shareClose")?.addEventListener("click", ()=> shareDlg.close());
 $("#shareCopy")?.addEventListener("click", async ()=>{
   if (!state.current) return;
@@ -350,32 +363,16 @@ $("#shareEmail")?.addEventListener("click", ()=>{
   shareDlg.close();
 });
 
-async function shareCurrent(d){
-  const url   = shareUrlFor(d);
-  const text  = copyRecipeText(d);
-  const title = `${d.strDrink} — Cocktail Finder`;
-
-  // try native share first
-  try{
-    if (navigator.share){
-      await navigator.share({ title, text, url });
-      showToast("Shared.");
-      return;
-    }
-  }catch(e){
-    if (e?.name !== "AbortError") console.warn(e);
-  }
-
-  // our fallback dialog
-  $("#sharePreview").textContent = url;
+function shareCurrent(d){
+  // Always show our dialog so email includes full recipe reliably
+  $("#sharePreview").textContent = shareUrlFor(d);
   if (typeof shareDlg.showModal === "function") shareDlg.showModal();
-  else { await copyText(url); status("Link copied. Share anywhere."); }
+  else copyText(shareUrlFor(d));
 }
 
 // ---------- Print ----------
 $("#pClose")?.addEventListener("click", ()=> printDlg.close());
 $("#pPrint")?.addEventListener("click", ()=>{
-  // open an isolated printable window (has its own back/close in the browser UI)
   const d = state.current; if(!d) return;
   const ings = ingredientsList(d);
   const html = `<!doctype html><html><head><meta charset="utf-8">
@@ -414,30 +411,11 @@ $("#pPrint")?.addEventListener("click", ()=>{
 });
 
 function printCurrent(d){
-  // show our preview dialog so users have a clear close/print path
   $("#pTitle").textContent = d.strDrink || "Print";
   $("#pMeta").textContent  = [d.strCategory,d.strAlcoholic,d.strGlass].filter(Boolean).join(" • ");
   $("#pImg").src = d.strDrinkThumb; $("#pImg").alt = d.strDrink || "Drink";
   const ul = $("#pIngredients"); ul.innerHTML = ingredientsList(d).map(i=>`<li>${escapeHtml(i)}</li>`).join("");
   $("#pInstructions").textContent = d.strInstructions || "—";
   if (typeof printDlg.showModal === "function") printDlg.showModal();
-  else $("#pPrint").click(); // worst-case fallback
+  else $("#pPrint").click(); // fallback
 }
-
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
-}
-
-// ---------- status + toast ----------
-function status(text=""){ statusEl.textContent = text; if(!text) hideToast(); }
-let toastTimer;
-function showToast(msg, ms=2000){
-  toastEl.textContent = msg;
-  toastEl.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(hideToast, ms);
-}
-function hideToast(){ toastEl.classList.remove("show"); }
-
-// ---------- seed with one random (or deep link handler above will override) ----------
-loadRandom();
