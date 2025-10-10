@@ -5,64 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
 
+  <!-- Faster first request to CocktailDB -->
   <link rel="preconnect" href="https://www.thecocktaildb.com" crossorigin>
+
   <title>Cocktail Finder — Random + Search</title>
 
-  <!-- Fonts -->
+  <!-- Glam fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 
-  <!-- Main CSS (cache-busted) -->
-  <link rel="stylesheet" href="styles.css?v=102" />
+  <!-- Styles (cache-busted) -->
+  <link rel="stylesheet" href="styles.css?v=106" />
 
-  <!-- Safety & small feature CSS -->
+  <!-- HARD OVERRIDE: footer at bottom & no line -->
   <style>
-    [hidden]{display:none!important;}
-
     html, body { height:100%; }
-    body { display:flex!important; flex-direction:column!important; min-height:100vh!important; }
-    main.container { flex:1 0 auto!important; }
+    body { display:flex !important; flex-direction:column !important; min-height:100vh !important; }
+    main.container { flex:1 0 auto !important; }
     body > footer.footer,
     body > footer.footer::before,
-    body > footer.footer::after { border-top:0!important; box-shadow:none!important; background:transparent!important; }
-    hr { display:none!important; }
+    body > footer.footer::after { border-top:0 !important; box-shadow:none !important; background:transparent !important; }
+    hr { display:none !important; height:0 !important; border:0 !important; }
 
-    /* Toast */
-    .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9999;
-      background:rgba(17,24,39,.92);color:#fff;border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;
-      box-shadow:0 10px 30px rgba(0,0,0,.25);backdrop-filter:blur(6px)}
-    .toast .btn{background:#111827;color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:6px 10px;cursor:pointer}
-
-    /* Suggestions dropdown */
-    .suggest-wrap{position:relative}
-    .suggestions{
-      position:absolute; inset:auto 0 auto 0; top:calc(100% + 6px);
-      background:rgba(17,24,39,.95); color:#fff; border:1px solid rgba(255,255,255,.12);
-      border-radius:12px; padding:6px; list-style:none; margin:0; z-index:50; max-height:280px; overflow:auto;
-      box-shadow:0 14px 32px rgba(0,0,0,.3); backdrop-filter:blur(6px)
+    /* Minimal toast styling (in case your CSS doesn’t have it) */
+    #toast {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(16px + env(safe-area-inset-bottom));
+      z-index: 9999;
+      background: rgba(17, 24, 39, .92);
+      color: #fff;
+      border-radius: 12px;
+      padding: .65rem .9rem;
+      display: none;
+      gap: .75rem;
+      align-items: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,.3);
+      backdrop-filter: saturate(120%) blur(6px);
+      font-size: .95rem;
     }
-    .suggestions li{padding:8px 10px;border-radius:10px;cursor:pointer}
-    .suggestions li:hover, .suggestions li.active{background:rgba(255,255,255,.08)}
-
-    /* Print preview dialog for mobile */
-    dialog#printDialog{
-      max-width:720px; width:92vw; border:0; border-radius:16px; padding:0; overflow:hidden;
-      box-shadow:0 30px 60px rgba(0,0,0,.45); background:rgba(17,24,39,.96); color:#fff
-    }
-    .print-shell{padding:16px}
-    .print-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
-    .print-head h3{margin:0;font:700 20px/1.2 "Playfair Display", Georgia, serif}
-    .print-actions{display:flex;gap:8px}
-    .print-actions .btn{background:#111827;color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:8px 12px}
-    .print-body{background:#0b0f19;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;max-height:62vh;overflow:auto}
-    .print-grid{display:grid;grid-template-columns:140px 1fr;gap:14px}
-    @media (max-width:520px){ .print-grid{grid-template-columns:1fr} }
-    .print-body img{width:100%;border-radius:10px}
-    .print-body h4{margin:.25rem 0;font:600 16px/1.2 "Playfair Display", Georgia, serif}
-    .print-body ul{padding-left:1.2em;margin:.25rem 0}
-    .print-body .meta{opacity:.8;margin:.25rem 0 .75rem}
+    #toast.show { display:flex; }
+    #toast .btn { margin-left:.25rem; }
   </style>
 </head>
 <body>
+  <!-- soft dark overlay behind everything -->
   <div class="bg-overlay" aria-hidden="true"></div>
 
   <header class="app-header">
@@ -77,9 +64,10 @@
       <button class="tab" data-tab="search">🔎 Search</button>
     </nav>
 
+    <!-- Status line (accessible) -->
     <p id="status" class="status" aria-live="polite" role="status"></p>
 
-    <!-- Random -->
+    <!-- Random mode -->
     <section id="pane-random" class="pane">
       <div class="controls">
         <button id="newBtn" class="btn primary">New Drink</button>
@@ -108,20 +96,24 @@
       </article>
     </section>
 
-    <!-- Search -->
+    <!-- Search mode -->
     <section id="pane-search" class="pane" hidden>
-      <form id="searchForm" class="controls suggest-wrap" autocomplete="off">
-        <input id="searchInput" type="text" placeholder="Search by name (e.g., margarita)" required />
+      <form id="searchForm" class="controls" autocomplete="off">
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="Search by name (e.g., margarita)"
+          list="nameSuggestions"
+          required
+        />
+        <datalist id="nameSuggestions"></datalist>
         <button type="submit" class="btn primary">Search</button>
         <button type="button" id="randomBtn" class="btn">🎲 Random</button>
-
-        <!-- Suggestions dropdown -->
-        <ul id="suggestions" class="suggestions" hidden></ul>
       </form>
 
       <section id="results" class="grid"></section>
 
-      <!-- Details dialog -->
+      <!-- Reusable details dialog -->
       <dialog id="detailsDialog">
         <article class="dialog-content">
           <button id="closeDialog" class="btn small" aria-label="Close">✕</button>
@@ -161,37 +153,7 @@
     </small>
   </footer>
 
-  <!-- Toast (undo) -->
-  <div id="toast" class="toast" role="status" hidden>
-    <span id="toastMsg" class="msg">Done.</span>
-    <button id="toastUndo" class="btn">Undo</button>
-  </div>
-
-  <!-- Mobile print preview dialog -->
-  <dialog id="printDialog">
-    <div class="print-shell">
-      <div class="print-head">
-        <h3 id="pTitle">Print Preview</h3>
-        <div class="print-actions">
-          <button id="pClose" class="btn" type="button">Close</button>
-          <button id="pPrint" class="btn" type="button">Print</button>
-        </div>
-      </div>
-      <div class="print-body">
-        <div class="meta" id="pMeta"></div>
-        <div class="print-grid">
-          <img id="pImg" alt="">
-          <div>
-            <h4>Ingredients</h4>
-            <ul id="pIngredients"></ul>
-            <h4>Instructions</h4>
-            <p id="pInstructions"></p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </dialog>
-
+  <!-- Skeleton card template (used if you add skeletons later) -->
   <template id="sk-card-sm">
     <article class="card-sm sk">
       <div class="sk-img"></div>
@@ -206,6 +168,9 @@
     </article>
   </template>
 
-  <script src="script.js" type="module"></script>
+  <!-- Toast -->
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="script.js?v=106"></script>
 </body>
 </html>
