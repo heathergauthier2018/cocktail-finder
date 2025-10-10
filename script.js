@@ -2,26 +2,49 @@
 const $  = (sel, root=document) => root.querySelector(sel);
 const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
+// ---------- Status (auto-clears) ----------
+let statusTimer = null;
+function setStatus(text) {
+  const el = $("#status");
+  el.textContent = text || "";
+  clearTimeout(statusTimer);
+  if (text) statusTimer = setTimeout(() => (el.textContent = ""), 2000);
+}
+
+// ---------- Toast (2s, with optional Undo) ----------
+let toastTimer = null;
+let toastUndoHandler = null;
+function showToast(message, withUndo=false, undoHandler=null) {
+  const box = $("#toast");
+  const msg = $("#toastMsg");
+  const undo = $("#toastUndo");
+
+  msg.textContent = message;
+  box.removeAttribute("hidden");
+
+  // configure undo
+  toastUndoHandler = withUndo && typeof undoHandler === "function" ? undoHandler : null;
+  undo.style.display = toastUndoHandler ? "inline-block" : "none";
+
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 2000);
+}
+function hideToast(){
+  const box = $("#toast");
+  box.setAttribute("hidden", "");
+  clearTimeout(toastTimer);
+  toastTimer = null;
+  toastUndoHandler = null;
+}
+$("#toastUndo").addEventListener("click", () => {
+  if (toastUndoHandler) toastUndoHandler();
+  hideToast();
+});
+
 // ---------- state ----------
 const state = { current: null, favs: [] };
 
-// ---------- elements ----------
-const statusEl   = $("#status");
-const favListEl  = $("#favList");
-const favCountEl = $("#favCount");
-
-// ---------- tabs ----------
-const tabs = $$(".tab");
-tabs.forEach(btn => btn.addEventListener("click", () => setTab(btn.dataset.tab)));
-function setTab(name){
-  tabs.forEach(b => b.classList.toggle("active", b.dataset.tab === name));
-  $("#pane-random").hidden = name !== "random";
-  $("#pane-search").hidden = name !== "search";
-  statusEl.textContent = "";
-}
-setTab("random");
-
-// ======== favorites helpers ========
+// ---------- favorites storage ----------
 function persistFavs(){ try{ localStorage.setItem("cf:favs", JSON.stringify(state.favs)); }catch{} }
 function loadFavs(){ try{ state.favs = JSON.parse(localStorage.getItem("cf:favs") || "[]"); }catch{ state.favs = []; } }
 function isSaved(id){ return state.favs.some(x => x.idDrink === id); }
@@ -34,16 +57,28 @@ function minify(d){
 }
 function dedupeAndCap(){
   const seen = new Set();
-  state.favs = state.favs
-    .filter(x => seen.has(x.idDrink) ? false : (seen.add(x.idDrink), true))
-    .slice(0,20);
+  state.favs = state.favs.filter(x => (seen.has(x.idDrink) ? false : (seen.add(x.idDrink), true))).slice(0, 20);
 }
 function setCurrent(drink){
   state.current = drink || null;
   updateSaveButtons();
 }
 
+// ---------- tabs ----------
+const tabs = $$(".tab");
+tabs.forEach(btn => btn.addEventListener("click", () => setTab(btn.dataset.tab)));
+function setTab(name){
+  tabs.forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  $("#pane-random").hidden = name !== "random";
+  $("#pane-search").hidden = name !== "search";
+  setStatus("");
+}
+setTab("random");
+
 // ---------- favorites UI ----------
+const favListEl  = $("#favList");
+const favCountEl = $("#favCount");
+
 loadFavs(); renderFavs();
 
 function renderFavs(){
@@ -68,45 +103,42 @@ function renderFavs(){
     btn.addEventListener("click", () => {
       const f = state.favs.find(x => x.idDrink === btn.dataset.id);
       if (!f) return;
-      openDrink(f);
+      openDrink(f); // sets current & opens
     });
   });
+
   favListEl.querySelectorAll(".btn-remove").forEach(btn => {
     btn.addEventListener("click", () => {
       state.favs = state.favs.filter(x => x.idDrink !== btn.dataset.id);
       persistFavs();
       renderFavs();
+      // if current visible drink is the one we removed, fix the button state
       if (state.current && state.current.idDrink === btn.dataset.id) updateSaveButtons();
       updateSearchSaveButtons();
     });
   });
 }
 
-// Clear all with undo toast
+let lastFavs = null;
 $("#clearFavs").addEventListener("click", () => {
-  if (state.favs.length === 0) return;
-  const prev = [...state.favs];
+  if (!state.favs.length) return;
+  lastFavs = [...state.favs];
   state.favs = [];
   persistFavs();
   renderFavs();
-  updateSearchSaveButtons();
+  updateSaveButtons(); // fix Saved/Save label if current drink was in favorites
 
-  showToast(`Removed ${prev.length} saved drink(s).`, () => {
-    state.favs = prev;
+  showToast(`Removed ${lastFavs.length} saved drink(s).`, true, () => {
+    // UNDO
+    state.favs = lastFavs;
+    lastFavs = null;
     persistFavs();
     renderFavs();
-    updateSearchSaveButtons();
+    updateSaveButtons();
   });
 });
 
-function toggleSave(drink){
-  if(!drink) return;
-  const i = state.favs.findIndex(x => x.idDrink === drink.idDrink);
-  if(i >= 0) state.favs.splice(i,1); else state.favs.unshift(minify(drink));
-  dedupeAndCap(); persistFavs(); renderFavs(); updateSaveButtons(); updateSearchSaveButtons();
-}
-
-// ================= utilities =================
+// ---------- utilities ----------
 function ingredientsList(d){
   const list = [];
   for(let i=1;i<=15;i++){
@@ -125,34 +157,36 @@ function copyRecipeText(d){
     `Instructions:`, d.strInstructions || "—"
   ].join("\n");
 }
-
-// Robust copy (desktop + mobile fallbacks)
 async function copyToClipboard(text){
-  // Modern API (HTTPS + user gesture)
-  if (navigator.clipboard?.writeText) {
-    try { await navigator.clipboard.writeText(text); statusEl.textContent = "Copied to clipboard."; return; }
-    catch { /* fall through */ }
-  }
-  // Legacy fallback
-  const ta = document.createElement("textarea");
-  ta.value = text;
-  ta.setAttribute("readonly", "");
-  ta.style.position = "fixed";
-  ta.style.opacity = "0";
-  document.body.appendChild(ta);
-  ta.select();
   try {
-    document.execCommand("copy");
-    statusEl.textContent = "Copied to clipboard.";
+    await navigator.clipboard.writeText(text);
+    showToast("Copied to clipboard.");
+    return true;
   } catch {
-    // Last resort: show prompt so user can copy manually
-    alert("Copy not available. The recipe text will be shown so you can copy manually.\n\n" + text);
-  } finally {
-    document.body.removeChild(ta);
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      showToast("Copied to clipboard.");
+      return true;
+    } catch {
+      setStatus("Unable to copy. You can select and copy manually.");
+      return false;
+    }
   }
 }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => (
+    { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]
+  ));
+}
 
-// ================= RANDOM MODE =================
+// ---------- RANDOM MODE ----------
 const cardEl  = $("#card");
 const imgEl   = $("#thumb");
 const titleEl = $("#title");
@@ -164,12 +198,19 @@ $("#newBtn").addEventListener("click", loadRandom);
 $("#saveBtn").addEventListener("click", () => state.current && toggleSave(state.current));
 $("#copyBtn").addEventListener("click", () => state.current && copyToClipboard(copyRecipeText(state.current)));
 $("#shareBtn").addEventListener("click", shareCurrent);
-$("#printBtn").addEventListener("click", () => printSmart(state.current));
+$("#printBtn").addEventListener("click", printCurrent);
 
-updateSaveButtons();
+function updateSaveButtons(){
+  const saved = state.current && isSaved(state.current.idDrink);
+  const mainBtn = $("#saveBtn");
+  const dlgBtn  = $("#dSaveBtn");
+  const label   = saved ? "⭐ Saved" : "⭐ Save";
+  if (mainBtn) mainBtn.textContent = label;
+  if (dlgBtn)  dlgBtn.textContent  = label;
+}
 
 async function loadRandom(){
-  setBusy(true, "Loading a delicious idea…");
+  setStatus("Loading a delicious idea…");
   cardEl.hidden = true;
   try{
     const res  = await fetch("https://www.thecocktaildb.com/api/json/v1/1/random.php");
@@ -178,12 +219,10 @@ async function loadRandom(){
     const d    = data.drinks?.[0]; if(!d) throw new Error("No drink");
     setCurrent(d);
     renderRandomCard(d);
-    statusEl.textContent = "Press “New Drink” to shuffle again.";
+    setStatus("Press “New Drink” to shuffle again.");
   }catch(err){
     console.error(err);
-    statusEl.textContent = "Couldn’t load a drink. Please try again.";
-  }finally{
-    setBusy(false);
+    setStatus("Couldn’t load a drink. Please try again.");
   }
 }
 
@@ -200,126 +239,102 @@ function renderRandomCard(d){
   setCurrent(d);
 }
 
-function updateSaveButtons(){
-  const saved = state.current && isSaved(state.current.idDrink);
-  const label = saved ? "⭐ Saved" : "⭐ Save";
-  $("#saveBtn").textContent = label;
-  const dlgBtn = $("#dSaveBtn");
-  if (dlgBtn) dlgBtn.textContent = label;
-}
-
-// ================= SEARCH MODE (with suggestions) =================
+// ---------- SEARCH MODE ----------
 const resultsEl   = $("#results");
 const searchForm  = $("#searchForm");
 const searchInput = $("#searchInput");
+const suggBox     = $("#suggestions");
 const randomBtn   = $("#randomBtn");
-const suggestionsEl = $("#suggestions");
 
+// submit search
 searchForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const term = searchInput.value.trim();
-  if(!term) return;
-  hideSuggestions();
+  const term = searchInput.value.trim(); if(!term) return;
   await doSearch(term);
 });
+
+// random in search pane
 randomBtn.addEventListener("click", async () => {
   const res  = await fetch("https://www.thecocktaildb.com/api/json/v1/1/random.php");
   const data = await res.json();
   renderSearchCards(data.drinks ? [data.drinks[0]] : []);
-  hideSuggestions();
 });
 
-// Debounced suggest-as-you-type
+// typeahead suggestions (custom list)
 let suggestTimer = null;
+let activeIndex = -1;
+let currentSuggestions = [];
+
+function clearSuggestions(){ suggBox.innerHTML = ""; suggBox.setAttribute("hidden",""); currentSuggestions = []; activeIndex = -1; }
+
 searchInput.addEventListener("input", () => {
-  const q = searchInput.value.trim();
   clearTimeout(suggestTimer);
-  if (q.length < 2) { hideSuggestions(); return; }
-  suggestTimer = setTimeout(() => fetchSuggestions(q), 220);
+  const q = searchInput.value.trim();
+  if (!q) { clearSuggestions(); return; }
+  suggestTimer = setTimeout(async () => {
+    try{
+      const resp = await fetch(`https://www.thecocktaildb.com/api/json/v1/1/search.php?s=${encodeURIComponent(q)}`);
+      const data = await resp.json();
+      const names = (data.drinks || []).map(d => d.strDrink);
+      currentSuggestions = names.slice(0, 8);
+      if (!currentSuggestions.length) { clearSuggestions(); return; }
+
+      suggBox.innerHTML = currentSuggestions.map((n,i)=>`<li data-i="${i}">${escapeHtml(n)}</li>`).join("");
+      suggBox.removeAttribute("hidden");
+
+      // click select
+      $$("li", suggBox).forEach(li => {
+        li.addEventListener("click", () => {
+          searchInput.value = li.textContent;
+          clearSuggestions();
+          searchForm.requestSubmit();
+        });
+      });
+    }catch{
+      clearSuggestions();
+    }
+  }, 250);
 });
 
-// keyboard nav in suggestions
 searchInput.addEventListener("keydown", (e) => {
-  if (suggestionsEl.hidden) return;
-  const items = $$("#suggestions li");
-  if (!items.length) return;
-
-  const activeIdx = items.findIndex(li => li.classList.contains("active"));
-
+  if (suggBox.hasAttribute("hidden")) return;
+  const max = currentSuggestions.length - 1;
   if (e.key === "ArrowDown") {
     e.preventDefault();
-    const next = (activeIdx + 1) % items.length;
-    items.forEach(li => li.classList.remove("active"));
-    items[next].classList.add("active");
-    items[next].scrollIntoView({ block: "nearest" });
+    activeIndex = Math.min(max, activeIndex + 1);
+    updateActiveSuggestion();
   } else if (e.key === "ArrowUp") {
     e.preventDefault();
-    const next = (activeIdx - 1 + items.length) % items.length;
-    items.forEach(li => li.classList.remove("active"));
-    items[next].classList.add("active");
-    items[next].scrollIntoView({ block: "nearest" });
+    activeIndex = Math.max(0, activeIndex - 1);
+    updateActiveSuggestion();
   } else if (e.key === "Enter") {
-    if (activeIdx >= 0) {
+    if (activeIndex >= 0) {
       e.preventDefault();
-      const val = items[activeIdx].dataset.name;
-      selectSuggestion(val);
+      searchInput.value = currentSuggestions[activeIndex];
+      clearSuggestions();
+      searchForm.requestSubmit();
     }
   } else if (e.key === "Escape") {
-    hideSuggestions();
+    clearSuggestions();
   }
 });
-
-async function fetchSuggestions(q){
-  try{
-    const res = await fetch(`https://www.thecocktaildb.com/api/json/v1/1/search.php?s=${encodeURIComponent(q)}`);
-    const data = await res.json();
-    const names = (data.drinks || []).map(d => d.strDrink).filter(Boolean);
-
-    if (!names.length) { hideSuggestions(); return; }
-
-    // Unique, top 8
-    const unique = [...new Set(names)].slice(0, 8);
-
-    suggestionsEl.innerHTML = "";
-    unique.forEach(name => {
-      const li = document.createElement("li");
-      li.textContent = name;
-      li.dataset.name = name;
-      li.addEventListener("mousedown", (e) => { // mousedown avoids blur before click on some mobiles
-        e.preventDefault();
-        selectSuggestion(name);
-      });
-      suggestionsEl.appendChild(li);
-    });
-    // mark first as active
-    const first = suggestionsEl.querySelector("li");
-    if (first) first.classList.add("active");
-
-    suggestionsEl.hidden = false;
-  }catch{
-    hideSuggestions();
-  }
-}
-
-function hideSuggestions(){ suggestionsEl.hidden = true; suggestionsEl.innerHTML = ""; }
-async function selectSuggestion(name){
-  searchInput.value = name;
-  hideSuggestions();
-  await doSearch(name);
+function updateActiveSuggestion(){
+  $$("li", suggBox).forEach((li,i) => li.classList.toggle("active", i === activeIndex));
 }
 
 async function doSearch(term){
-  setBusy(true, `Searching for “${term}”…`);
+  setStatus(`Searching for “${term}”…`);
+  clearSuggestions();
   try{
     const res  = await fetch(`https://www.thecocktaildb.com/api/json/v1/1/search.php?s=${encodeURIComponent(term)}`);
     if(!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     renderSearchCards(data.drinks || []);
-    statusEl.textContent = (data.drinks && data.drinks.length) ? "" : "No results. Try another search.";
+    setStatus((data.drinks && data.drinks.length) ? "" : "No results. Try another search.");
   }catch(err){
     console.error(err);
-    statusEl.textContent = "Something went wrong. Please try again.";
-  }finally{ setBusy(false); }
+    setStatus("Something went wrong. Please try again.");
+  }
 }
 
 function renderSearchCards(items){
@@ -355,13 +370,13 @@ function updateSearchSaveButtons(){
   });
 }
 
-// ---------- Details dialog ----------
+// ---------- details dialog ----------
 const dialogEl = $("#detailsDialog");
 $("#closeDialog").addEventListener("click", () => dialogEl.close());
-$("#dSaveBtn")?.addEventListener("click", () => state.current && toggleSave(state.current));
-$("#dCopyBtn")?.addEventListener("click", () => state.current && copyToClipboard(copyRecipeText(state.current)));
-$("#dShareBtn")?.addEventListener("click", shareCurrent);
-$("#dPrintBtn")?.addEventListener("click", () => printSmart(state.current));
+$("#dSaveBtn").addEventListener("click", () => state.current && toggleSave(state.current));
+$("#dCopyBtn").addEventListener("click", () => state.current && copyToClipboard(copyRecipeText(state.current)));
+$("#dShareBtn").addEventListener("click", shareCurrent);
+$("#dPrintBtn").addEventListener("click", printCurrent);
 
 function openDetails(d){
   setCurrent(d);
@@ -371,138 +386,172 @@ function openDetails(d){
   const ul = $("#dIngredients"); ul.innerHTML = "";
   for(const item of ingredientsList(d)){ const li=document.createElement("li"); li.textContent=item; ul.appendChild(li); }
   $("#dInstructions").textContent = d.strInstructions || "—";
+
   if(typeof dialogEl.showModal === "function") dialogEl.showModal();
   else alert(`Ingredients:\n${ingredientsList(d).join("\n")}\n\n${d.strInstructions||"—"}`);
+
   updateSaveButtons();
 }
 
 function openDrink(f){
+  // Expand saved -> full drink for random card/details
   const expanded = {}; (f.ingredients||[]).forEach((v,i)=> expanded[`strIngredient${i+1}`] = v);
   const d = { ...f, ...expanded };
-  if(!$("#pane-random").hidden) renderRandomCard(d);
-  else openDetails(d);
+  if(!$("#pane-random").hidden){
+    renderRandomCard(d);
+  }else{
+    openDetails(d);
+  }
 }
 
-// ---------- Share ----------
+// ---------- Share (deep-link) ----------
 async function shareCurrent(){
   if (!state.current) return;
   const d = state.current;
   const title = `${d.strDrink} — Cocktail Finder`;
   const text  = copyRecipeText(d);
-  const url   = location.href;
+  const base  = location.origin + location.pathname.replace(/index\.html$/,'');
+  const url   = `${base}?id=${encodeURIComponent(d.idDrink)}`;
 
   try{
     if (navigator.share) {
       await navigator.share({ title, text, url });
-      statusEl.textContent = "Shared.";
+      setStatus("Shared.");
       return;
     }
   }catch(e){
     if (e?.name !== "AbortError") console.warn(e);
   }
 
-  // Fallback: email + copy
-  const mailto = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(text + "\n\n" + url)}`;
-  try { await navigator.clipboard.writeText(text + "\n\n" + url); } catch {}
-  location.href = mailto;
+  // Fallback: copy link+recipe
+  await copyToClipboard(`${title}\n${url}\n\n${text}`);
+  showToast("Link copied. Share anywhere.");
 }
 
-// ---------- Smart Print (desktop window / mobile dialog) ----------
+// ---------- Print ----------
 const printDialog = $("#printDialog");
+const pTitle = $("#pTitle");
+const pMeta  = $("#pMeta");
+const pImg   = $("#pImg");
+const pIng   = $("#pIngredients");
+const pInst  = $("#pInstructions");
 $("#pClose").addEventListener("click", () => printDialog.close());
-$("#pPrint").addEventListener("click", () => window.print());
+$("#pPrint").addEventListener("click", () => {
+  printDialog.close();
+  // open real printable window
+  doPrintWindow();
+});
 
-function printSmart(d){
-  if (!d) return;
-  const isSmall = window.matchMedia("(max-width: 768px)").matches;
+function printCurrent(){
+  if (!state.current) return;
+  const d = state.current;
 
-  if (isSmall) {
-    // Fill dialog
-    $("#pTitle").textContent = d.strDrink || "Print Preview";
-    $("#pMeta").textContent  = [d.strCategory,d.strAlcoholic,d.strGlass].filter(Boolean).join(" • ");
-    $("#pImg").src = d.strDrinkThumb; $("#pImg").alt = d.strDrink || "Drink";
+  // Show mobile-friendly preview dialog
+  pTitle.textContent = d.strDrink || "Print Preview";
+  pMeta.textContent  = [d.strCategory,d.strAlcoholic,d.strGlass].filter(Boolean).join(" • ");
+  pImg.src = d.strDrinkThumb; pImg.alt = d.strDrink || "Drink";
 
-    const ul = $("#pIngredients"); ul.innerHTML = "";
-    for(const item of ingredientsList(d)){
-      const li = document.createElement("li"); li.textContent = item; ul.appendChild(li);
-    }
-    $("#pInstructions").textContent = d.strInstructions || "—";
+  pIng.innerHTML = ingredientsList(d).map(x=>`<li>${escapeHtml(x)}</li>`).join("");
+  pInst.textContent = d.strInstructions || "—";
 
-    if (typeof printDialog.showModal === "function") printDialog.showModal();
-    else alert("Print preview not supported by this browser.");
-    return;
+  if (typeof printDialog.showModal === "function") {
+    printDialog.showModal();
+  } else {
+    // Fallback: print directly
+    doPrintWindow();
   }
+}
 
-  // Desktop: open print window (nice printable layout)
+function doPrintWindow(){
+  const d = state.current;
+  if (!d) return;
   const ings = ingredientsList(d);
   const html = `<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html>
+<head>
+<meta charset="utf-8">
 <title>${d.strDrink} — Print</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   @page { size: Letter; margin: 14mm; }
   :root{ --ink:#111; --muted:#475569; }
   body{ font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; color:var(--ink); }
-  .sheet{ max-width: 900px; margin: 0 auto; }
-  header{text-align:center;margin-bottom:8mm}
+  .sheet{ max-width:900px; margin:0 auto; }
+  header{ text-align:center; margin-bottom:8mm; }
   h1{ font:700 28px/1.2 "Playfair Display", Georgia, serif; margin:0 0 2mm; }
-  .meta{ color:var(--muted) }
-  .grid{ display:grid; grid-template-columns: 320px 1fr; gap:12mm; align-items:start }
-  img{ width:100%; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.15) }
-  h2{ font:600 16px/1.2 "Playfair Display", Georgia, serif; margin:0 0 4mm }
-  ul{ padding-left:1.2em; margin:0 }
-  .footer{ margin-top:10mm; text-align:center; color:var(--muted); font-size:12px }
-</style></head><body>
-<div class="sheet">
-<header><h1>${escapeHtml(d.strDrink||"—")}</h1>
-<div class="meta">${escapeHtml([d.strCategory,d.strAlcoholic,d.strGlass].filter(Boolean).join(" • "))}</div></header>
-<section class="grid">
-  <div><img src="${d.strDrinkThumb}" alt="${escapeHtml(d.strDrink||"Drink")}"></div>
-  <div>
-    <h2>Ingredients</h2>
-    <ul>${ings.map(i=>`<li>${escapeHtml(i)}</li>`).join("")}</ul>
-    <h2 style="margin-top:6mm">Instructions</h2>
-    <p>${escapeHtml(d.strInstructions||"—")}</p>
+  .meta{ color:var(--muted); }
+  .grid{ display:grid; grid-template-columns:min(320px,40%) 1fr; gap:12mm; align-items:start; }
+  .photo{ width:100%; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.15); }
+  h2{ font:600 16px/1.2 "Playfair Display", Georgia, serif; margin:0 0 4mm; }
+  ul{ padding-left:1.2em; margin:0; }
+  .ing li{ margin:2mm 0; }
+  .box{ background:#fafafa; border:1px solid #e5e7eb; border-radius:10px; padding:6mm; }
+  .footer{ margin-top:10mm; text-align:center; color:var(--muted); font-size:12px; }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <header>
+      <h1>${escapeHtml(d.strDrink || "—")}</h1>
+      <div class="meta">${escapeHtml([d.strCategory,d.strAlcoholic,d.strGlass].filter(Boolean).join(" • "))}</div>
+    </header>
+
+    <section class="grid">
+      <div>
+        <img class="photo" src="${d.strDrinkThumb}" alt="${escapeHtml(d.strDrink || "Drink")}">
+      </div>
+      <div class="box">
+        <h2>Ingredients</h2>
+        <ul class="ing">
+          ${ings.map(i => `<li>${escapeHtml(i)}</li>`).join("")}
+        </ul>
+        <h2 style="margin-top:6mm">Instructions</h2>
+        <p>${escapeHtml(d.strInstructions || "—")}</p>
+      </div>
+    </section>
+
+    <p class="footer">Printed from Cocktail Finder • thecocktaildb.com</p>
   </div>
-</section>
-<p class="footer">Printed from Cocktail Finder • thecocktaildb.com</p>
-</div>
-<script>window.onload=()=>setTimeout(()=>window.print(),50);<\/script>
-</body></html>`;
+<script>window.onload = () => { setTimeout(() => window.print(), 60); }<\/script>
+</body>
+</html>`;
   const w = window.open("", "_blank");
   if (!w) return;
   w.document.write(html);
   w.document.close();
 }
 
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, m => (
-    { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]
-  ));
+// ---------- toggle save ----------
+function toggleSave(drink){
+  if(!drink) return;
+  const i = state.favs.findIndex(x => x.idDrink === drink.idDrink);
+  if(i >= 0) state.favs.splice(i,1);
+  else state.favs.unshift(minify(drink));
+  dedupeAndCap();
+  persistFavs();
+  renderFavs();
+  updateSaveButtons();
+  updateSearchSaveButtons();
 }
 
-// ---------- Toast (undo) ----------
-const toastEl    = $("#toast");
-const toastMsgEl = $("#toastMsg");
-const toastUndo  = $("#toastUndo");
-let toastTimer = null;
-function hideToast(){
-  toastEl.hidden = true;
-  if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
-}
-hideToast();
-toastEl.addEventListener("click", hideToast);
-window.addEventListener("keydown", (e) => { if (e.key === "Escape" && !toastEl.hidden) hideToast(); });
-function showToast(message, onUndo){
-  toastMsgEl.textContent = message;
-  if (onUndo) { toastUndo.hidden = false; toastUndo.onclick = () => { hideToast(); onUndo(); }; }
-  else { toastUndo.hidden = true; toastUndo.onclick = null; }
-  toastEl.hidden = false;
-  if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(hideToast, 2000);
+// ---------- Deep link on load (?id=) ----------
+async function tryOpenByIdFromURL() {
+  const url = new URL(location.href);
+  const id = url.searchParams.get("id");
+  if (!id) return false;
+  try {
+    const resp = await fetch(`https://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=${encodeURIComponent(id)}`);
+    const data = await resp.json();
+    const drink = data.drinks?.[0];
+    if (!drink) return false;
+    setTab("random");
+    renderRandomCard(drink);
+    return true;
+  } catch { return false; }
 }
 
-// ---------- status helper ----------
-function setBusy(_isBusy, text=""){ statusEl.textContent = text || statusEl.textContent; }
-
-// seed with one random
-loadRandom();
+// ---------- seed ----------
+(async () => {
+  const opened = await tryOpenByIdFromURL();
+  if (!opened) await loadRandom();
+})();
