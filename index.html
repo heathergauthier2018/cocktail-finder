@@ -5,81 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
 
-  <!-- Faster first request to CocktailDB -->
   <link rel="preconnect" href="https://www.thecocktaildb.com" crossorigin>
-
   <title>Cocktail Finder — Random + Search</title>
 
-  <!-- Glam fonts -->
+  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 
-  <!-- Main styles (cache-busted) -->
-  <link rel="stylesheet" href="styles.css?v=107" />
+  <!-- Main CSS (cache-busted) -->
+  <link rel="stylesheet" href="styles.css?v=108" />
 
-  <!-- Small, hard overrides + widget styles used by script -->
+  <!-- Minimal overrides for dialogs & toast (safe if duplicated in styles.css) -->
   <style>
-    /* layout guardrails */
-    html, body { height:100%; }
-    body { display:flex !important; flex-direction:column !important; min-height:100vh !important; }
-    main.container { flex:1 0 auto !important; }
-    body > footer.footer,
-    body > footer.footer::before,
-    body > footer.footer::after { border-top:0 !important; box-shadow:none !important; background:transparent !important; }
-    hr { display:none !important; height:0 !important; border:0 !important; }
+    [hidden]{display:none!important;}
+    html,body{height:100%}
+    body{display:flex!important;flex-direction:column!important;min-height:100vh!important}
+    main.container{flex:1 0 auto!important}
+    hr{display:none!important}
 
-    /* ---------------- Toast ---------------- */
-    .toast{
-      position:fixed; left:50%; transform:translateX(-50%);
-      bottom:calc(18px + env(safe-area-inset-bottom, 0px));
-      z-index:9999; background:rgba(17,24,39,.92); color:#fff;
-      border-radius:12px; padding:10px 12px; display:flex; gap:10px; align-items:center;
-      box-shadow:0 10px 30px rgba(0,0,0,.3); backdrop-filter:blur(6px);
+    dialog.app-dialog{
+      border:0; border-radius:16px; padding:0; overflow:hidden;
+      max-width:720px; width:92vw; color:#fff;
+      background:rgba(17,24,39,.96); backdrop-filter:blur(8px);
+      box-shadow:0 30px 60px rgba(0,0,0,.45);
     }
-    .toast[hidden]{ display:none !important; }
-    .toast .btn{ background:#111827; color:#fff; border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:6px 10px; cursor:pointer }
+    .dlg-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .dlg-title{margin:0;font:700 18px/1.2 "Playfair Display",Georgia,serif}
+    .dlg-body{padding:14px}
+    .dlg-actions{display:flex;gap:10px;justify-content:flex-end;padding:12px 14px;border-top:1px solid rgba(255,255,255,.08)}
+    .btn-dlg{background:#0b1020;color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:8px 12px;cursor:pointer}
 
-    @media (max-width:768px){
-      .toast{ bottom:calc(18px + env(safe-area-inset-bottom, 0px) + 64px); }
-    }
+    /* share list */
+    .share-list{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .share-list .btn-dlg{width:100%}
 
-    /* --------------- Suggestions (inline list) --------------- */
-    .suggest-wrap{ position:relative; }
-    #suggestions{
-      position:absolute; left:0; right:0; top:calc(100% + 6px);
-      background:rgba(17,24,39,.95); color:#fff; border:1px solid rgba(255,255,255,.12);
-      border-radius:12px; padding:6px; list-style:none; margin:0; z-index:50; max-height:280px; overflow:auto;
-      box-shadow:0 14px 32px rgba(0,0,0,.3); backdrop-filter:blur(6px)
-    }
-    #suggestions[hidden]{ display:none; }
-    #suggestions li{ padding:8px 10px; border-radius:10px; cursor:pointer }
-    #suggestions li:hover, #suggestions li.active{ background:rgba(255,255,255,.08) }
-
-    /* --------------- Fallback Share dialog --------------- */
-    #shareDialog{ border:0; border-radius:16px; padding:0; background:rgba(17,24,39,.98); color:#fff; max-width:540px; width:92vw; }
-    #shareDialog .dialog-content{ padding:16px 16px 20px; }
-    #shareClose{ position:absolute; right:12px; top:10px; }
-
-    /* --------------- Mobile Print Preview dialog --------------- */
-    #printDialog{
-      max-width:720px; width:92vw; border:0; border-radius:16px; padding:0; overflow:hidden;
-      box-shadow:0 30px 60px rgba(0,0,0,.45); background:rgba(17,24,39,.96); color:#fff
-    }
-    .print-shell{ padding:16px }
-    .print-head{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px }
-    .print-head h3{ margin:0; font:700 20px/1.2 "Playfair Display", Georgia, serif }
-    .print-actions{ display:flex; gap:8px }
-    .print-actions .btn{ background:#111827; color:#fff; border:1px solid rgba(255,255,255,.14); border-radius:10px; padding:8px 12px }
-    .print-body{ background:#0b0f19; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px; max-height:62vh; overflow:auto }
-    .print-grid{ display:grid; grid-template-columns:140px 1fr; gap:14px }
-    @media (max-width:520px){ .print-grid{ grid-template-columns:1fr } }
-    .print-body img{ width:100%; border-radius:10px }
-    .print-body h4{ margin:.25rem 0; font:600 16px/1.2 "Playfair Display", Georgia, serif }
-    .print-body ul{ padding-left:1.2em; margin:.25rem 0 }
-    .print-body .meta{ opacity:.8; margin:.25rem 0 .75rem }
+    /* toast */
+    #toast{position:fixed;left:50%;transform:translateX(-50%);
+      bottom:calc(16px + env(safe-area-inset-bottom));z-index:9999;
+      background:rgba(17,24,39,.92);color:#fff;border-radius:12px;
+      padding:.65rem .9rem;display:none;gap:.75rem;align-items:center;
+      box-shadow:0 10px 30px rgba(0,0,0,.3);backdrop-filter:saturate(120%) blur(6px);font-size:.95rem}
+    #toast.show{display:flex}
   </style>
 </head>
 <body>
-  <!-- soft dark overlay behind everything -->
   <div class="bg-overlay" aria-hidden="true"></div>
 
   <header class="app-header">
@@ -94,10 +62,9 @@
       <button class="tab" data-tab="search">🔎 Search</button>
     </nav>
 
-    <!-- Status line (accessible) -->
     <p id="status" class="status" aria-live="polite" role="status"></p>
 
-    <!-- Random mode -->
+    <!-- Random -->
     <section id="pane-random" class="pane">
       <div class="controls">
         <button id="newBtn" class="btn primary">New Drink</button>
@@ -126,45 +93,36 @@
       </article>
     </section>
 
-    <!-- Search mode -->
+    <!-- Search -->
     <section id="pane-search" class="pane" hidden>
-      <form id="searchForm" class="controls suggest-wrap" autocomplete="off">
-        <input
-          id="searchInput"
-          type="text"
-          placeholder="Search by name (e.g., margarita)"
-          list="nameSuggestions"
-          required
-        />
-        <!-- Native datalist (optional) -->
+      <form id="searchForm" class="controls" autocomplete="off">
+        <input id="searchInput" type="text" placeholder="Search by name (e.g., margarita)" list="nameSuggestions" required />
         <datalist id="nameSuggestions"></datalist>
-        <!-- Inline, richer suggestions used by script.js -->
-        <ul id="suggestions" hidden></ul>
-
         <button type="submit" class="btn primary">Search</button>
         <button type="button" id="randomBtn" class="btn">🎲 Random</button>
       </form>
 
       <section id="results" class="grid"></section>
 
-      <!-- Reusable details dialog -->
-      <dialog id="detailsDialog">
-        <article class="dialog-content">
-          <button id="closeDialog" class="btn small" aria-label="Close">✕</button>
-          <h2 id="dTitle" class="card-title"></h2>
-          <img id="dImg" alt="" />
+      <dialog id="detailsDialog" class="app-dialog">
+        <div class="dlg-head">
+          <h2 id="dTitle" class="dlg-title"></h2>
+          <button id="closeDialog" class="btn-dlg" aria-label="Close">✕</button>
+        </div>
+        <div class="dlg-body">
+          <img id="dImg" alt="" style="width:100%;border-radius:12px;margin-bottom:10px"/>
           <p id="dMeta" class="muted"></p>
           <h3 class="card-section">Ingredients</h3>
           <ul id="dIngredients" class="ing-list"></ul>
           <h3 class="card-section">Instructions</h3>
           <p id="dInstructions" class="instructions"></p>
-          <div class="inline-actions">
-            <button id="dSaveBtn" class="btn">⭐ Save</button>
-            <button id="dCopyBtn" class="btn">📋 Copy</button>
-            <button id="dShareBtn" class="btn">🔗 Share</button>
-            <button id="dPrintBtn" class="btn">🖨️ Print</button>
-          </div>
-        </article>
+        </div>
+        <div class="dlg-actions">
+          <button id="dSaveBtn" class="btn-dlg">⭐ Save</button>
+          <button id="dCopyBtn" class="btn-dlg">📋 Copy</button>
+          <button id="dShareBtn" class="btn-dlg">🔗 Share</button>
+          <button id="dPrintBtn" class="btn-dlg">🖨️ Print</button>
+        </div>
       </dialog>
     </section>
 
@@ -187,69 +145,47 @@
     </small>
   </footer>
 
-  <!-- Fallback Share dialog (desktop/web-share unavailable) -->
-  <dialog id="shareDialog">
-    <article class="dialog-content">
-      <button id="shareClose" class="btn small" aria-label="Close">✕</button>
-      <h3 class="card-title" style="margin-top:0">Share</h3>
-      <p class="muted" id="shareSummary" style="margin:.25rem 0 1rem"></p>
-      <div class="inline-actions" style="flex-wrap:wrap;gap:8px">
-        <a id="shareFacebook" class="btn" target="_blank" rel="noopener">Facebook</a>
-        <a id="shareTwitter"  class="btn" target="_blank" rel="noopener">X / Twitter</a>
-        <a id="shareWhatsApp" class="btn" target="_blank" rel="noopener">WhatsApp</a>
-        <a id="shareEmail"    class="btn">Email</a>
-        <button id="shareCopy" class="btn">Copy link</button>
-      </div>
-    </article>
-  </dialog>
-
-  <!-- Mobile-friendly Print Preview dialog -->
-  <dialog id="printDialog">
-    <div class="print-shell">
-      <div class="print-head">
-        <h3 id="pTitle">Print Preview</h3>
-        <div class="print-actions">
-          <button id="pClose" class="btn" type="button">Close</button>
-          <button id="pPrint" class="btn" type="button">Print</button>
-        </div>
-      </div>
-      <div class="print-body">
-        <div class="meta" id="pMeta"></div>
-        <div class="print-grid">
-          <img id="pImg" alt="">
-          <div>
-            <h4>Ingredients</h4>
-            <ul id="pIngredients"></ul>
-            <h4>Instructions</h4>
-            <p id="pInstructions"></p>
-          </div>
-        </div>
+  <!-- Share dialog (our fallback, includes copy/email) -->
+  <dialog id="shareDialog" class="app-dialog">
+    <div class="dlg-head">
+      <h3 class="dlg-title">Share</h3>
+      <button id="shareClose" class="btn-dlg" aria-label="Close">✕</button>
+    </div>
+    <div class="dlg-body">
+      <p id="sharePreview" class="muted" style="word-break:break-word"></p>
+      <div class="share-list">
+        <button id="shareCopy" class="btn-dlg">Copy link</button>
+        <button id="shareEmail" class="btn-dlg">Email recipe</button>
       </div>
     </div>
   </dialog>
 
-  <!-- Toast (message + optional Undo) -->
-  <div id="toast" class="toast" role="status" aria-live="polite" hidden>
-    <span id="toastMsg" class="msg">Done.</span>
-    <button id="toastUndo" class="btn">Undo</button>
-  </div>
-
-  <!-- Skeleton card template (kept if you add skeletons later) -->
-  <template id="sk-card-sm">
-    <article class="card-sm sk">
-      <div class="sk-img"></div>
-      <div class="pad">
-        <div class="sk-line w60"></div>
-        <div class="sk-line w40"></div>
-        <div class="sk-buttons">
-          <div class="sk-pill"></div>
-          <div class="sk-pill"></div>
+  <!-- Print preview dialog (mobile-friendly) -->
+  <dialog id="printDialog" class="app-dialog">
+    <div class="dlg-head">
+      <h3 id="pTitle" class="dlg-title">Print</h3>
+      <button id="pClose" class="btn-dlg">✕</button>
+    </div>
+    <div class="dlg-body">
+      <p id="pMeta" class="muted"></p>
+      <div style="display:grid;grid-template-columns:140px 1fr;gap:14px">
+        <img id="pImg" alt="" style="width:100%;border-radius:10px">
+        <div>
+          <h4 style="margin:.3rem 0">Ingredients</h4>
+          <ul id="pIngredients"></ul>
+          <h4 style="margin:.6rem 0 .3rem">Instructions</h4>
+          <p id="pInstructions"></p>
         </div>
       </div>
-    </article>
-  </template>
+    </div>
+    <div class="dlg-actions">
+      <button id="pPrint" class="btn-dlg">Print</button>
+    </div>
+  </dialog>
 
-  <!-- App script (cache-busted) -->
-  <script type="module" src="script.js?v=107"></script>
+  <!-- Toast -->
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="script.js?v=108"></script>
 </body>
 </html>
